@@ -107,7 +107,7 @@ jobs:
         run: docker build -t "$IMAGE_NAME:${{ github.sha }}" app
 
       - name: Scan image (fail on fixable HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           severity: HIGH,CRITICAL
@@ -117,7 +117,7 @@ jobs:
 
       - name: Export findings as SARIF
         if: always()
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: sarif
@@ -132,7 +132,7 @@ jobs:
           category: trivy
 
       - name: Generate SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: cyclonedx
