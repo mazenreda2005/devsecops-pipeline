@@ -136,7 +136,7 @@ jobs:
           output: sbom.cdx.json
           skip-setup-trivy: true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: sbom.cdx.json
