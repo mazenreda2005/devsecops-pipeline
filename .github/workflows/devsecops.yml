@@ -9,6 +9,7 @@ on:
 # Least privilege by default; jobs opt in to more.
 permissions:
   contents: read
+  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
