@@ -9,7 +9,6 @@ on:
 # Least privilege by default; jobs opt in to more.
 permissions:
   contents: read
-  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,13 +18,17 @@ env:
   IMAGE_NAME: devsecops-demo
 
 jobs:
+
   # 1. Leaked credentials anywhere in git history
   secrets-scan:
     name: Secrets (Gitleaks)
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
+      actions: read
       security-events: write
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,15 +42,17 @@ jobs:
 
       - name: Upload results to GitHub Security tab
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gitleaks.sarif
           category: gitleaks
+
 
   # 2. Python code: unit tests + static analysis
   code-scan:
     name: Code (tests + Bandit)
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -66,13 +71,17 @@ jobs:
       - name: Bandit (fail on medium+ severity)
         run: bandit -r app -x app/tests --severity-level medium
 
+
   # 3. Terraform, Dockerfile and workflow misconfigurations
   iac-scan:
     name: IaC (Checkov)
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
+      actions: read
       security-events: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -86,18 +95,22 @@ jobs:
 
       - name: Upload results to GitHub Security tab
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: checkov.sarif
           category: checkov
+
 
   # 4. Container image: OS + library CVEs, plus an SBOM
   container-scan:
     name: Container (Trivy)
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
+      actions: read
       security-events: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -124,7 +137,7 @@ jobs:
 
       - name: Upload results to GitHub Security tab
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy.sarif
           category: trivy
@@ -142,6 +155,7 @@ jobs:
           name: sbom
           path: sbom.cdx.json
 
+
   # 5. Deploy only when every gate passed, only from main,
   #    using short-lived OIDC credentials (no AWS keys stored in GitHub).
   deploy:
@@ -150,11 +164,14 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
     runs-on: ubuntu-latest
     environment: production
+
     permissions:
       contents: read
       id-token: write
+
     env:
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -176,7 +193,9 @@ jobs:
             -backend-config="key=devsecops-demo/terraform.tfstate" \
             -backend-config="region=$AWS_REGION" \
             -backend-config="encrypt=true"
+
           terraform apply -input=false -auto-approve -var "region=$AWS_REGION"
+
           echo "REPO_URL=$(terraform output -raw repository_url)" >> "$GITHUB_ENV"
 
       - name: Log in to ECR
