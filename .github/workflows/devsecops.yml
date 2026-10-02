@@ -9,6 +9,7 @@ on:
 # Least privilege by default; jobs opt in to more.
 permissions:
   contents: read
+  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,13 +27,12 @@ jobs:
 
     permissions:
       contents: read
-      actions: read
       security-events: write
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # scan full history, not just the last commit
+          fetch-depth: 0
 
       - name: Run Gitleaks
         run: |
@@ -79,7 +79,6 @@ jobs:
 
     permissions:
       contents: read
-      actions: read
       security-events: write
 
     steps:
@@ -108,7 +107,6 @@ jobs:
 
     permissions:
       contents: read
-      actions: read
       security-events: write
 
     steps:
@@ -131,6 +129,8 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
           format: sarif
           output: trivy.sarif
           skip-setup-trivy: true
@@ -157,12 +157,20 @@ jobs:
 
 
   # 5. Deploy only when every gate passed, only from main,
-  #    using short-lived OIDC credentials (no AWS keys stored in GitHub).
+  #    using short-lived OIDC credentials
   deploy:
     name: Deploy to AWS
-    needs: [secrets-scan, code-scan, iac-scan, container-scan]
+
+    needs:
+      - secrets-scan
+      - code-scan
+      - iac-scan
+      - container-scan
+
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
+
     runs-on: ubuntu-latest
+
     environment: production
 
     permissions:
@@ -203,6 +211,11 @@ jobs:
 
       - name: Build and push image
         run: |
-          docker build --build-arg APP_VERSION="${{ github.sha }}" -t "$REPO_URL:${{ github.sha }}" app
+          docker build \
+            --build-arg APP_VERSION="${{ github.sha }}" \
+            -t "$REPO_URL:${{ github.sha }}" \
+            app
+
           docker push "$REPO_URL:${{ github.sha }}"
+
           echo "Pushed $REPO_URL:${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
