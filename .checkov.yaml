@@ -1,0 +1,10 @@
+# Checkov configuration used by CI and pre-commit.
+framework:
+  - terraform
+  - dockerfile
+  - github_actions
+skip-path:
+  - demo/
+# Every skip must have a written reason, either here or inline in the code.
+skip-check: []
+compact: true
