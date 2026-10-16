@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- build stage: install deps into a virtualenv ----
-FROM python:3.12-slim AS build
+FROM python:3.14-slim AS build
 WORKDIR /app
 RUN python -m venv /venv
 COPY requirements.txt .
@@ -9,7 +9,7 @@ RUN /venv/bin/pip install --no-cache-dir -r requirements.txt \
  && /venv/bin/python -m pip uninstall -y pip
 
 # ---- runtime stage: minimal, non-root, no package manager for Python ----
-FROM python:3.12-slim
+FROM python:3.14-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH="/venv/bin:$PATH"
 
 # Apply Debian security fixes released after the base image was built,
